@@ -61,21 +61,68 @@ const getPositionErrorMessage = code => {
 */
 function init() {
   const initialPosition = { lat: 59.32, lng: 17.84 };
-  const map = createMap(initialPosition);
-  const marker = createMarker({ map, position: initialPosition });
-  const $info = document.getElementById('info');
+  const startLocation = {
+    lat: 45.4222931,
+    lng: -75.6870167
+  }
 
-  let watchId = trackLocation({
-    onSuccess: ({ coords: { latitude: lat, longitude: lng } }) => {
-      marker.setPosition({ lat, lng });
-      map.panTo({ lat, lng });
-      $info.textContent = `Lat: ${lat.toFixed(5)} Lng: ${lng.toFixed(5)}`;
-      $info.classList.remove('error');
-    },
-    onError: err => {
-      console.log($info);
-      $info.textContent = `Error: ${err.message || getPositionErrorMessage(err.code)}`;
-      $info.classList.add('error');
+  const endLocation = {
+    lat: 45.4199184,
+    lng: -75.710681
+  }
+  const map = createMap(initialPosition);
+
+  const directionsService = new google.maps.DirectionsService();
+  const directionsRenderer = new google.maps.DirectionsRenderer();
+
+  directionsService.route({
+    origin: startLocation,
+    destination: endLocation,
+    travelMode: google.maps.TravelMode.DRIVING
+  }, function (response, status) {
+    if (status === google.maps.DirectionsStatus.OK) {
+      directionsRenderer.setDirections(response);
+      directionsRenderer.setMap(map);
+      const steps = response.routes[0].overview_path;
+      const marker = new google.maps.Marker({
+        map: map,
+        position: {
+          lat: steps[0].lat(),
+          lng: steps[0].lng()
+        },
+        label: '🚘',
+        zIndex: 1,
+      });
+      let i = 0;
+      const interval = setInterval(function () {
+        i++;
+        if (i === steps.length) {
+          clearInterval(interval);
+          return
+        }
+
+        marker.setPosition({
+          lat: steps[i].lat(),
+          lng: steps[i].lng()
+        });
+
+      }, 1000);
     }
-  });
+  })
+  // const marker = createMarker({ map, position: initialPosition });
+  // const $info = document.getElementById('info');
+
+  // let watchId = trackLocation({
+  //   onSuccess: ({ coords: { latitude: lat, longitude: lng } }) => {
+  //     marker.setPosition({ lat, lng });
+  //     map.panTo({ lat, lng });
+  //     $info.textContent = `Lat: ${lat.toFixed(5)} Lng: ${lng.toFixed(5)}`;
+  //     $info.classList.remove('error');
+  //   },
+  //   onError: err => {
+  //     console.log($info);
+  //     $info.textContent = `Error: ${err.message || getPositionErrorMessage(err.code)}`;
+  //     $info.classList.add('error');
+  //   }
+  // });
 }
